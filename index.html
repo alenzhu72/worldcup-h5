@@ -1,0 +1,1223 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>世界杯热门球队阵容与比分预测</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --ink: #101623;
+      --muted: #687386;
+      --line: #e4e8f0;
+      --panel: #ffffff;
+      --red: #e33d4f;
+      --green: #1a9f75;
+      --blue: #1769e0;
+      --amber: #f0a328;
+      --shadow: 0 14px 38px rgba(20, 31, 52, .10);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+    }
+
+    .app {
+      width: min(100%, 480px);
+      min-height: 100vh;
+      margin: 0 auto;
+      background:
+        linear-gradient(180deg, rgba(16, 32, 58, .95) 0, rgba(20, 46, 78, .92) 232px, transparent 233px),
+        var(--bg);
+      padding: env(safe-area-inset-top) 14px 92px;
+    }
+
+    header {
+      padding: 18px 4px 10px;
+      color: #fff;
+    }
+
+    .kicker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      opacity: .78;
+    }
+
+    .lang-toggle {
+      border: 1px solid rgba(255,255,255,.28);
+      border-radius: 8px;
+      background: rgba(255,255,255,.12);
+      color: #fff;
+      padding: 7px 9px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    h1 {
+      margin: 10px 0 14px;
+      font-size: 28px;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stat {
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.08);
+      border-radius: 8px;
+      padding: 10px 9px;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 19px;
+      line-height: 1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 5px;
+      font-size: 11px;
+      color: rgba(255,255,255,.72);
+      white-space: nowrap;
+    }
+
+    .searchbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      margin: 10px 0 12px;
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 10px;
+      background: rgba(255,255,255,.96);
+      box-shadow: var(--shadow);
+    }
+
+    .searchbar input {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      font-size: 15px;
+      background: transparent;
+      padding: 8px 6px;
+      color: var(--ink);
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 0 0 12px;
+    }
+
+    .tab {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      padding: 11px 10px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .tab.active {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .team-strip {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 1px 0 12px;
+      scroll-snap-type: x proximity;
+      scrollbar-width: none;
+    }
+
+    .team-strip::-webkit-scrollbar { display: none; }
+
+    .rank-row {
+      position: relative;
+      margin-bottom: 2px;
+    }
+
+    .rank-row::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 32px;
+      height: calc(100% - 12px);
+      pointer-events: none;
+      background: linear-gradient(90deg, rgba(245,247,251,0), var(--bg));
+    }
+
+    .rank-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 0 2px 8px;
+      color: #3b4658;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .swipe-hint {
+      color: var(--blue);
+      font-weight: 900;
+    }
+
+    .team-pill {
+      min-width: 92px;
+      flex: 0 0 92px;
+      scroll-snap-align: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px;
+      text-align: left;
+      color: var(--ink);
+    }
+
+    .team-pill.active {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 2px rgba(23,105,224,.13);
+    }
+
+    .flag {
+      width: 30px;
+      height: 22px;
+      object-fit: cover;
+      border-radius: 3px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.08);
+      background: #eee;
+      vertical-align: middle;
+    }
+
+    .pill-name {
+      display: block;
+      margin-top: 7px;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .pill-en {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rank {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    section { display: none; }
+    section.active { display: block; }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: 0 10px 26px rgba(20,31,52,.06);
+      margin-bottom: 12px;
+      overflow: hidden;
+    }
+
+    .team-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .team-head .flag {
+      width: 52px;
+      height: 37px;
+      border-radius: 5px;
+      flex: 0 0 auto;
+    }
+
+    .team-title {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .team-title h2 {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.12;
+    }
+
+    .meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: #eef4ff;
+      color: var(--blue);
+      font-weight: 900;
+    }
+
+    .players {
+      padding: 4px 0;
+    }
+
+    .player {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      gap: 9px;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid #edf0f5;
+    }
+
+    .player:last-child { border-bottom: 0; }
+
+    .num {
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #f1f4f8;
+      color: #344055;
+      font-weight: 900;
+      font-size: 13px;
+    }
+
+    .shirt {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 950;
+      font-size: 12px;
+      line-height: 1.05;
+    }
+
+    .player b {
+      display: block;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-en {
+      color: #344055;
+      font-weight: 700;
+    }
+
+    .club-line {
+      color: var(--muted);
+    }
+
+    .pos {
+      border-radius: 7px;
+      padding: 5px 7px;
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      background: var(--green);
+    }
+
+    .pos.fw { background: var(--red); }
+    .pos.mf { background: var(--blue); }
+    .pos.df { background: #59677c; }
+    .pos.gk { background: var(--amber); color: #3b2a05; }
+
+    .notice {
+      margin: 0 0 12px;
+      padding: 11px 12px;
+      border-radius: 8px;
+      background: #fff8e7;
+      border: 1px solid #f5dfa5;
+      color: #6c4c06;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .account-panel, .stats-panel {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 26px rgba(20,31,52,.06);
+    }
+
+    .account-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .account-panel input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 14px;
+      outline: 0;
+    }
+
+    .account-panel button, .mini-btn {
+      border: 0;
+      border-radius: 8px;
+      background: var(--blue);
+      color: #fff;
+      padding: 10px 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .mini-btn.secondary {
+      background: #eef4ff;
+      color: var(--blue);
+    }
+
+    .user-chip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      grid-column: 1 / -1;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .user-chip b {
+      color: var(--ink);
+      font-size: 15px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .stats-grid div {
+      border-radius: 8px;
+      background: #f4f7fb;
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .stats-grid b {
+      display: block;
+      font-size: 18px;
+    }
+
+    .stats-grid span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .match {
+      padding: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .match:last-child { border-bottom: 0; }
+
+    .match-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 10px;
+    }
+
+    .status {
+      border-radius: 7px;
+      padding: 4px 7px;
+      background: #edf8f4;
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    .status.future { background: #eef4ff; color: var(--blue); }
+
+    .teams-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .side {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .side.away {
+      justify-content: flex-end;
+      text-align: right;
+    }
+
+    .side span {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .side-name {
+      min-width: 0;
+    }
+
+    .side-name small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .score-box {
+      min-width: 82px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+
+    .predict {
+      display: grid;
+      grid-template-columns: 1fr 34px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-top: 11px;
+      padding-top: 11px;
+      border-top: 1px dashed #d7dce6;
+    }
+
+    .predict input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 9px 6px;
+      text-align: center;
+      font-size: 16px;
+      font-weight: 900;
+      outline: 0;
+      background: #fbfcfe;
+    }
+
+    .predict button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .pred-text {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .prediction-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .all-predictions {
+      display: none;
+      margin-top: 9px;
+      border-radius: 8px;
+      background: #f6f8fb;
+      padding: 8px;
+      color: #344055;
+      font-size: 12px;
+    }
+
+    .all-predictions.open {
+      display: block;
+    }
+
+    .prediction-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid #e6ebf2;
+    }
+
+    .prediction-row:last-child {
+      border-bottom: 0;
+    }
+
+    .empty {
+      padding: 22px 14px;
+      color: var(--muted);
+      text-align: center;
+      font-size: 13px;
+    }
+
+    .bottom-nav {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      width: min(100%, 480px);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(245,247,251,.92);
+      backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(215,220,230,.75);
+    }
+
+    .bottom-nav button {
+      border: 0;
+      border-radius: 8px;
+      padding: 12px 10px;
+      color: var(--muted);
+      background: #fff;
+      font-size: 14px;
+      font-weight: 900;
+      box-shadow: 0 8px 18px rgba(20,31,52,.08);
+    }
+
+    .bottom-nav button.active {
+      background: var(--blue);
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div class="kicker">
+        <span id="kickerLeft">FIFA 2026 · 热门球队数据库</span>
+        <button id="langToggle" class="lang-toggle" type="button">中文</button>
+      </div>
+      <h1 id="heroTitle">世界杯球队人员<br />与比分预测</h1>
+      <div class="hero-stats">
+        <div class="stat"><b>40</b><span id="statTeams">排名热门队</span></div>
+        <div class="stat"><b>640</b><span id="statPlayers">核心球员样例</span></div>
+        <div class="stat"><b id="fixtureCount">104</b><span id="statMatches">赛程样例</span></div>
+      </div>
+    </header>
+
+    <div class="searchbar">
+      <input id="search" type="search" placeholder="搜索球队 / 球员 / 俱乐部" />
+    </div>
+
+    <div class="tabs" aria-label="页面视图">
+      <button class="tab active" data-view="teams" id="teamsTab">球队人员</button>
+      <button class="tab" data-view="matches" id="matchesTab">赛程比分</button>
+    </div>
+
+    <div class="rank-row">
+      <div class="rank-label">
+        <span id="rankTitle">世界排名 Top 40</span>
+        <span class="swipe-hint" id="swipeHint">右滑查看更多</span>
+      </div>
+      <div id="teamStrip" class="team-strip"></div>
+    </div>
+
+    <section id="teamsView" class="active">
+      <p class="notice" id="teamsNotice">数据说明：世界排名参考 FIFA 2026-06-11 男足排名；赛程/比分读取同目录 matches.json；球员名单为本项目手工维护数据，并非官方最终 26 人名单。球衣号码在官方名单公布前可能需要继续修正。</p>
+      <div id="teamDetail"></div>
+    </section>
+
+    <section id="matchesView">
+      <p class="notice" id="matchesNotice">登录只需要输入名字，不设密码。部署到服务器并启用 api.php 后，所有人的预测会共享保存；本机预览时会临时保存在浏览器里。</p>
+      <div id="accountPanel" class="account-panel"></div>
+      <div id="statsPanel" class="stats-panel"></div>
+      <div id="matchList" class="panel"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="active" data-view="teams" id="bottomTeams">球队</button>
+    <button data-view="matches" id="bottomMatches">赛程</button>
+  </nav>
+
+  <script>
+    const flag = code => `https://flagcdn.com/w80/${code}.png`;
+    const posClass = p => ({ 前锋: 'fw', 中场: 'mf', 后卫: 'df', 门将: 'gk' }[p] || '');
+    const posLabel = p => ({
+      en: { 前锋: 'FW', 中场: 'MF', 后卫: 'DF', 门将: 'GK' },
+      zh: { 前锋: '前锋', 中场: '中场', 后卫: '后卫', 门将: '门将' }
+    }[lang]?.[p] || p);
+
+    let lang = localStorage.getItem('wc_lang') || 'en';
+    const i18n = {
+      en: {
+        kicker: 'FIFA 2026 · Popular Teams Database',
+        toggle: '中文',
+        hero: 'World Cup Squads<br />& Score Predictions',
+        statTeams: 'Top-ranked teams',
+        statPlayers: 'Player samples',
+        statMatches: 'Fixture samples',
+        search: 'Search team / player / club',
+        teamsTab: 'Squads',
+        matchesTab: 'Fixtures',
+        rankTitle: 'FIFA Ranking Top 40',
+        swipeHint: 'Swipe right for more',
+        teamsNotice: 'Data note: rankings reference the FIFA men’s ranking published on 2026-06-11. Fixtures and scores are synchronized from ESPN into matches.json. Match times are shown in Singapore Time, UTC+8. Player squads are manually maintained project data, not official final 26-player lists.',
+        matchesNotice: 'Login only requires a name, no password. After deploying api.php on the server, everyone’s predictions are shared; local preview temporarily saves predictions in this browser.',
+        bottomTeams: 'Teams',
+        bottomMatches: 'Fixtures',
+        worldRank: 'FIFA rank',
+        corePlayers: 'core players',
+        noPlayer: 'No matching players',
+        currentUser: 'Current user',
+        switchUser: 'Switch',
+        loginPlaceholder: 'Enter your name, e.g. Adam',
+        login: 'Login',
+        loginStats: 'Log in to track your prediction accuracy.',
+        accuracy: 'Accuracy',
+        exactHits: 'Exact scores',
+        resultHits: 'Result hits',
+        completed: 'Completed',
+        upcoming: 'Upcoming',
+        actualScore: 'Final score',
+        save: 'Save',
+        noPrediction: 'No prediction yet',
+        loginToPredict: 'Log in to enter your prediction',
+        yourPrediction: 'prediction',
+        peoplePredicted: 'predictions',
+        viewPredictions: 'View predictions',
+        noOtherPredictions: 'No predictions yet',
+        emptyMatches: 'No matching fixtures',
+        pending: 'TBD',
+        vs: 'VS',
+        group: 'Group'
+        ,timeZone: 'SGT (UTC+8)'
+      },
+      zh: {
+        kicker: 'FIFA 2026 · 热门球队数据库',
+        toggle: 'EN',
+        hero: '世界杯球队人员<br />与比分预测',
+        statTeams: '排名热门队',
+        statPlayers: '核心球员样例',
+        statMatches: '赛程样例',
+        search: '搜索球队 / 球员 / 俱乐部',
+        teamsTab: '球队人员',
+        matchesTab: '赛程比分',
+        rankTitle: '世界排名 Top 40',
+        swipeHint: '右滑查看更多',
+        teamsNotice: '数据说明：世界排名参考 FIFA 2026-06-11 男足排名；赛程和比分由 ESPN 同步到 matches.json；比赛时间统一显示为新加坡时间（UTC+8）；球员名单为本项目手工维护数据，并非官方最终 26 人名单。',
+        matchesNotice: '登录只需要输入名字，不设密码。部署到服务器并启用 api.php 后，所有人的预测会共享保存；本机预览时会临时保存在浏览器里。',
+        bottomTeams: '球队',
+        bottomMatches: '赛程',
+        worldRank: '世界排名',
+        corePlayers: '名核心球员',
+        noPlayer: '没有匹配的球员',
+        currentUser: '当前用户',
+        switchUser: '切换用户',
+        loginPlaceholder: '输入名字，例如 Adam',
+        login: '登录',
+        loginStats: '登录后会统计你的预测准确率。',
+        accuracy: '准确率',
+        exactHits: '比分命中',
+        resultHits: '胜平负命中',
+        completed: '已完成',
+        upcoming: '待开赛',
+        actualScore: '实际比分',
+        save: '保存',
+        noPrediction: '还没有填写预测比分',
+        loginToPredict: '请先登录后填写预测比分',
+        yourPrediction: '的预测',
+        peoplePredicted: '人已预测',
+        viewPredictions: '查看其他预测',
+        noOtherPredictions: '暂无其他预测',
+        emptyMatches: '没有匹配的赛程',
+        pending: '待定',
+        vs: 'VS',
+        group: 'Group'
+        ,timeZone: '新加坡时间 UTC+8'
+      }
+    };
+    const tr = key => i18n[lang][key] || i18n.en[key] || key;
+    const primaryTeam = info => lang === 'en' ? info.en : info.name;
+    const secondaryTeam = info => lang === 'en' ? info.name : info.en;
+    const primaryPlayer = p => lang === 'en' ? playerEn(p[0]) : p[0];
+    const secondaryPlayer = p => lang === 'en' ? p[0] : playerEn(p[0]);
+    const displayDate = value => {
+      if (lang !== 'en') return value;
+      const match = String(value).match(/^(\d+)月(\d+)日$/);
+      if (!match) return value;
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return `${months[Number(match[1]) - 1]} ${Number(match[2])}`;
+    };
+    const displayTime = value => `${value} ${tr('timeZone')}`;
+
+    const teams = [
+      ['ARG','阿根廷','Argentina','ar',1,'CONMEBOL',[['梅西','Inter Miami','前锋'],['劳塔罗','Inter Milan','前锋'],['阿尔瓦雷斯','Atletico Madrid','前锋'],['麦卡利斯特','Liverpool','中场'],['恩佐','Chelsea','中场'],['德保罗','Atletico Madrid','中场'],['罗梅罗','Tottenham','后卫'],['马丁内斯','Aston Villa','门将']]],
+      ['ESP','西班牙','Spain','es',2,'UEFA',[['亚马尔','Barcelona','前锋'],['尼科·威廉姆斯','Athletic Club','前锋'],['莫拉塔','Galatasaray','前锋'],['佩德里','Barcelona','中场'],['罗德里','Manchester City','中场'],['法比安','Paris Saint-Germain','中场'],['卡瓦哈尔','Real Madrid','后卫'],['乌奈·西蒙','Athletic Club','门将']]],
+      ['FRA','法国','France','fr',3,'UEFA',[['姆巴佩','Real Madrid','前锋'],['登贝莱','Paris Saint-Germain','前锋'],['格列兹曼','Atletico Madrid','前锋'],['楚阿梅尼','Real Madrid','中场'],['卡马文加','Real Madrid','中场'],['拉比奥','Marseille','中场'],['萨利巴','Arsenal','后卫'],['迈尼昂','AC Milan','门将']]],
+      ['ENG','英格兰','England','gb-eng',4,'UEFA',[['凯恩','Bayern Munich','前锋'],['萨卡','Arsenal','前锋'],['福登','Manchester City','前锋'],['贝林厄姆','Real Madrid','中场'],['赖斯','Arsenal','中场'],['帕尔默','Chelsea','中场'],['斯通斯','Manchester City','后卫'],['皮克福德','Everton','门将']]],
+      ['POR','葡萄牙','Portugal','pt',5,'UEFA',[['C罗','Al Nassr','前锋'],['莱奥','AC Milan','前锋'],['特林康','Sporting CP','前锋'],['B费','Manchester United','中场'],['B席','Manchester City','中场'],['维蒂尼亚','Paris Saint-Germain','中场'],['鲁本·迪亚斯','Manchester City','后卫'],['迪奥戈·科斯塔','Porto','门将']]],
+      ['BRA','巴西','Brazil','br',6,'CONMEBOL',[['维尼修斯','Real Madrid','前锋'],['罗德里戈','Real Madrid','前锋'],['拉菲尼亚','Barcelona','前锋'],['吉马良斯','Newcastle United','中场'],['帕奎塔','West Ham United','中场'],['卡塞米罗','Manchester United','中场'],['马尔基尼奥斯','Paris Saint-Germain','后卫'],['阿利松','Liverpool','门将']]],
+      ['NED','荷兰','Netherlands','nl',7,'UEFA',[['加克波','Liverpool','前锋'],['德佩','Corinthians','前锋'],['哈维·西蒙斯','RB Leipzig','中场'],['德容','Barcelona','中场'],['赖因德斯','AC Milan','中场'],['范戴克','Liverpool','后卫'],['德利赫特','Manchester United','后卫'],['维尔布鲁根','Brighton','门将']]],
+      ['BEL','比利时','Belgium','be',8,'UEFA',[['卢卡库','Napoli','前锋'],['多库','Manchester City','前锋'],['特罗萨德','Arsenal','前锋'],['德布劳内','Napoli','中场'],['蒂勒曼斯','Aston Villa','中场'],['奥纳纳','Aston Villa','中场'],['费尔通亨','Anderlecht','后卫'],['卡斯特尔斯','Al Qadsiah','门将']]],
+      ['GER','德国','Germany','de',9,'UEFA',[['穆西亚拉','Bayern Munich','中场'],['维尔茨','Bayer Leverkusen','中场'],['哈弗茨','Arsenal','前锋'],['萨内','Bayern Munich','前锋'],['基米希','Bayern Munich','中场'],['京多安','Manchester City','中场'],['吕迪格','Real Madrid','后卫'],['特尔施特根','Barcelona','门将']]],
+      ['CRO','克罗地亚','Croatia','hr',10,'UEFA',[['克拉马里奇','Hoffenheim','前锋'],['佩里西奇','PSV','前锋'],['莫德里奇','Real Madrid','中场'],['科瓦契奇','Manchester City','中场'],['布罗佐维奇','Al Nassr','中场'],['格瓦迪奥尔','Manchester City','后卫'],['斯坦尼西奇','Bayern Munich','后卫'],['利瓦科维奇','Fenerbahce','门将']]],
+      ['ITA','意大利','Italy','it',11,'UEFA',[['基耶萨','Liverpool','前锋'],['雷特吉','Atalanta','前锋'],['巴雷拉','Inter Milan','中场'],['托纳利','Newcastle United','中场'],['弗拉泰西','Inter Milan','中场'],['迪洛伦佐','Napoli','后卫'],['巴斯托尼','Inter Milan','后卫'],['多纳鲁马','Paris Saint-Germain','门将']]],
+      ['MAR','摩洛哥','Morocco','ma',12,'CAF',[['恩内斯里','Fenerbahce','前锋'],['阿布德','Real Betis','前锋'],['齐耶赫','Al Duhail','中场'],['阿姆拉巴特','Fenerbahce','中场'],['奥纳希','Panathinaikos','中场'],['阿什拉夫','Paris Saint-Germain','后卫'],['阿格尔德','Real Sociedad','后卫'],['布努','Al Hilal','门将']]],
+      ['URU','乌拉圭','Uruguay','uy',13,'CONMEBOL',[['努涅斯','Liverpool','前锋'],['苏亚雷斯','Inter Miami','前锋'],['佩利斯特里','Panathinaikos','前锋'],['巴尔韦德','Real Madrid','中场'],['乌加特','Manchester United','中场'],['本坦库尔','Tottenham','中场'],['阿劳霍','Barcelona','后卫'],['罗切特','Internacional','门将']]],
+      ['COL','哥伦比亚','Colombia','co',14,'CONMEBOL',[['迪亚斯','Liverpool','前锋'],['杜兰','Aston Villa','前锋'],['博雷','Internacional','前锋'],['J罗','Rayo Vallecano','中场'],['莱尔马','Crystal Palace','中场'],['阿里亚斯','Fluminense','中场'],['穆尼奥斯','Crystal Palace','后卫'],['巴尔加斯','Atlas','门将']]],
+      ['SUI','瑞士','Switzerland','ch',15,'UEFA',[['恩博洛','Monaco','前锋'],['奥卡福','AC Milan','前锋'],['沙奇里','Basel','中场'],['扎卡','Bayer Leverkusen','中场'],['弗罗伊勒','Bologna','中场'],['阿坎吉','Manchester City','后卫'],['舍尔','Newcastle United','后卫'],['索默','Inter Milan','门将']]],
+      ['USA','美国','United States','us',16,'CONCACAF',[['普利西奇','AC Milan','前锋'],['巴洛贡','Monaco','前锋'],['雷纳','Borussia Dortmund','中场'],['麦肯尼','Juventus','中场'],['穆萨','AC Milan','中场'],['亚当斯','Bournemouth','中场'],['德斯特','PSV','后卫'],['特纳','Crystal Palace','门将']]],
+      ['MEX','墨西哥','Mexico','mx',17,'CONCACAF',[['希门尼斯','Fulham','前锋'],['洛萨诺','PSV','前锋'],['马丁','Club America','前锋'],['阿尔瓦雷斯','West Ham United','中场'],['查韦斯','Dynamo Moscow','中场'],['皮内达','AEK Athens','中场'],['蒙特斯','Almeria','后卫'],['奥乔亚','AVS','门将']]],
+      ['JPN','日本','Japan','jp',18,'AFC',[['三笘薰','Brighton','前锋'],['久保建英','Real Sociedad','前锋'],['堂安律','Freiburg','前锋'],['远藤航','Liverpool','中场'],['守田英正','Sporting CP','中场'],['镰田大地','Crystal Palace','中场'],['富安健洋','Arsenal','后卫'],['铃木彩艳','Parma','门将']]],
+      ['SEN','塞内加尔','Senegal','sn',19,'CAF',[['马内','Al Nassr','前锋'],['尼古拉斯·杰克逊','Chelsea','前锋'],['伊斯梅拉·萨尔','Crystal Palace','前锋'],['盖耶','Everton','中场'],['库亚特','Nottingham Forest','中场'],['帕佩·萨尔','Tottenham','中场'],['库利巴利','Al Hilal','后卫'],['门迪','Al Ahli','门将']]],
+      ['DEN','丹麦','Denmark','dk',20,'UEFA',[['霍伊伦','Manchester United','前锋'],['波尔森','RB Leipzig','前锋'],['埃里克森','Manchester United','中场'],['霍伊别尔','Marseille','中场'],['诺尔高','Brentford','中场'],['克里斯滕森','Barcelona','后卫'],['克亚尔','AC Milan','后卫'],['舒梅切尔','Celtic','门将']]],
+      ['AUT','奥地利','Austria','at',21,'UEFA',[['阿瑙托维奇','Inter Milan','前锋'],['鲍姆加特纳','RB Leipzig','中场'],['萨比策','Borussia Dortmund','中场'],['莱默尔','Bayern Munich','中场'],['施拉格尔','RB Leipzig','中场'],['阿拉巴','Real Madrid','后卫'],['丹索','Lens','后卫'],['彭茨','Brondby','门将']]],
+      ['IRN','伊朗','Iran','ir',22,'AFC',[['塔雷米','Inter Milan','前锋'],['阿兹蒙','Shabab Al Ahli','前锋'],['贾汉巴赫什','Heerenveen','前锋'],['古多斯','Al Ittihad Kalba','中场'],['埃扎托拉希','Shabab Al Ahli','中场'],['莫赫比','Rostov','中场'],['穆哈拉米','Dinamo Zagreb','后卫'],['贝兰万德','Persepolis','门将']]],
+      ['KOR','韩国','South Korea','kr',23,'AFC',[['孙兴慜','Tottenham','前锋'],['黄喜灿','Wolves','前锋'],['李刚仁','Paris Saint-Germain','中场'],['黄仁范','Feyenoord','中场'],['郑优营','Stuttgart','中场'],['金玟哉','Bayern Munich','后卫'],['薛英佑','Red Star Belgrade','后卫'],['赵贤祐','Ulsan HD','门将']]],
+      ['ECU','厄瓜多尔','Ecuador','ec',24,'CONMEBOL',[['恩纳·瓦伦西亚','Internacional','前锋'],['凯塞多','Chelsea','中场'],['派斯','Independiente del Valle','中场'],['普拉塔','Al Sadd','中场'],['辛卡皮耶','Bayer Leverkusen','后卫'],['埃斯图皮尼安','Brighton','后卫'],['帕乔','Paris Saint-Germain','后卫'],['加林德斯','Huracan','门将']]],
+      ['AUS','澳大利亚','Australia','au',25,'AFC',[['杜克','Machida Zelvia','前锋'],['古德温','Al Wehda','前锋'],['赫鲁斯蒂奇','Heracles','中场'],['欧文','St Pauli','中场'],['麦格里','Middlesbrough','中场'],['苏塔尔','Leicester City','后卫'],['贝希奇','Melbourne City','后卫'],['瑞安','Roma','门将']]],
+      ['UKR','乌克兰','Ukraine','ua',26,'UEFA',[['多夫比克','Roma','前锋'],['穆德里克','Chelsea','前锋'],['齐甘科夫','Girona','前锋'],['津琴科','Arsenal','中场'],['苏达科夫','Shakhtar Donetsk','中场'],['马利诺夫斯基','Genoa','中场'],['扎巴尔尼','Bournemouth','后卫'],['卢宁','Real Madrid','门将']]],
+      ['TUR','土耳其','Turkiye','tr',27,'UEFA',[['伊尔马兹','Galatasaray','前锋'],['居莱尔','Real Madrid','中场'],['恰尔汗奥卢','Inter Milan','中场'],['柯克曲','Benfica','中场'],['云代尔','Fenerbahce','前锋'],['卡迪奥卢','Brighton','后卫'],['德米拉尔','Al Ahli','后卫'],['恰基尔','Trabzonspor','门将']]],
+      ['POL','波兰','Poland','pl',28,'UEFA',[['莱万多夫斯基','Barcelona','前锋'],['米利克','Juventus','前锋'],['泽林斯基','Inter Milan','中场'],['莫德尔','Brighton','中场'],['弗兰科夫斯基','Lens','中场'],['基维奥尔','Arsenal','后卫'],['贝德纳雷克','Southampton','后卫'],['什琴斯尼','Barcelona','门将']]],
+      ['SWE','瑞典','Sweden','se',29,'UEFA',[['伊萨克','Newcastle United','前锋'],['哲凯赖什','Sporting CP','前锋'],['库卢塞夫斯基','Tottenham','中场'],['埃兰加','Nottingham Forest','前锋'],['福斯贝里','New York Red Bulls','中场'],['林德洛夫','Manchester United','后卫'],['希恩','Atalanta','后卫'],['奥尔森','Aston Villa','门将']]],
+      ['WAL','威尔士','Wales','gb-wls',30,'UEFA',[['布伦南·约翰逊','Tottenham','前锋'],['哈里·威尔逊','Fulham','前锋'],['詹姆斯','Leeds United','前锋'],['拉姆塞','Cardiff City','中场'],['阿姆帕杜','Leeds United','中场'],['威廉姆斯','Nottingham Forest','后卫'],['罗登','Leeds United','后卫'],['亨内西','Nottingham Forest','门将']]],
+      ['HUN','匈牙利','Hungary','hu',31,'UEFA',[['绍洛伊','Freiburg','前锋'],['索博斯洛伊','Liverpool','中场'],['舍费尔','Union Berlin','中场'],['纳吉','Spezia','中场'],['凯尔凯兹','Bournemouth','后卫'],['奥尔班','RB Leipzig','后卫'],['朗','Omonia','后卫'],['迪布斯','Ferencvaros','门将']]],
+      ['SRB','塞尔维亚','Serbia','rs',32,'UEFA',[['弗拉霍维奇','Juventus','前锋'],['米特罗维奇','Al Hilal','前锋'],['塔迪奇','Fenerbahce','中场'],['米林科维奇','Al Hilal','中场'],['科斯蒂奇','Fenerbahce','中场'],['帕夫洛维奇','AC Milan','后卫'],['米伦科维奇','Nottingham Forest','后卫'],['拉伊科维奇','Al Ittihad','门将']]],
+      ['EGY','埃及','Egypt','eg',33,'CAF',[['萨拉赫','Liverpool','前锋'],['马尔穆什','Manchester City','前锋'],['特雷泽盖','Trabzonspor','前锋'],['埃尔内尼','Al Jazira','中场'],['哈米德','Al Ittihad','中场'],['法蒂','Pyramids','中场'],['赫加齐','NEOM','后卫'],['埃尔谢纳维','Al Ahly','门将']]],
+      ['QAT','卡塔尔','Qatar','qa',34,'AFC',[['阿菲夫','Al Sadd','前锋'],['阿里','Al Duhail','前锋'],['海多斯','Al Sadd','中场'],['马迪博','Al Duhail','中场'],['布迪亚夫','Al Duhail','中场'],['米格尔','Al Sadd','后卫'],['胡希','Al Sadd','后卫'],['巴沙姆','Al Sadd','门将']]],
+      ['CAN','加拿大','Canada','ca',35,'CONCACAF',[['戴维','Lille','前锋'],['戴维斯','Bayern Munich','后卫'],['拉林','Mallorca','前锋'],['布坎南','Inter Milan','前锋'],['欧斯塔基奥','Porto','中场'],['科内','Marseille','中场'],['约翰斯顿','Celtic','后卫'],['克雷波','Portland Timbers','门将']]],
+      ['NOR','挪威','Norway','no',36,'UEFA',[['哈兰德','Manchester City','前锋'],['瑟洛特','Atletico Madrid','前锋'],['厄德高','Arsenal','中场'],['努萨','RB Leipzig','前锋'],['伯格','Fulham','中场'],['阿耶尔','Brentford','后卫'],['雷尔森','Borussia Dortmund','后卫'],['尼兰德','Sevilla','门将']]],
+      ['CZE','捷克','Czechia','cz',37,'UEFA',[['希克','Bayer Leverkusen','前锋'],['赫洛热克','Hoffenheim','前锋'],['绍切克','West Ham United','中场'],['曹法尔','West Ham United','后卫'],['普罗沃德','Slavia Prague','中场'],['克雷伊奇','Girona','后卫'],['霍莱什','Slavia Prague','后卫'],['斯塔涅克','Slavia Prague','门将']]],
+      ['NGA','尼日利亚','Nigeria','ng',38,'CAF',[['奥斯梅恩','Napoli','前锋'],['卢克曼','Atalanta','前锋'],['丘库埃泽','AC Milan','前锋'],['伊沃比','Fulham','中场'],['恩迪迪','Leicester City','中场'],['阿里博','Southampton','中场'],['巴锡','Fulham','后卫'],['恩瓦巴利','Chippa United','门将']]],
+      ['ALG','阿尔及利亚','Algeria','dz',39,'CAF',[['马赫雷斯','Al Ahli','前锋'],['古伊里','Rennes','前锋'],['本纳赛尔','AC Milan','中场'],['费古利','Fatih Karagumruk','中场'],['本拉赫马','Lyon','前锋'],['曼迪','Lille','后卫'],['阿塔尔','Al Sadd','后卫'],['曼德雷亚','Caen','门将']]],
+      ['SCO','苏格兰','Scotland','gb-sct',40,'UEFA',[['麦克托米奈','Napoli','中场'],['罗伯逊','Liverpool','后卫'],['麦金','Aston Villa','中场'],['吉尔摩','Napoli','中场'],['蒂尔尼','Real Sociedad','后卫'],['切·亚当斯','Torino','前锋'],['戴克斯','Birmingham City','前锋'],['冈恩','Norwich City','门将']]]
+    ].map(([code, name, en, flagCode, rank, confed, players]) => ({ code, name, en, flagCode, rank, confed, players }));
+
+    const squadAdds = {
+      ARG: [['迪马利亚','Benfica','中场'],['尼古拉斯·冈萨雷斯','Juventus','前锋'],['帕雷德斯','Roma','中场'],['洛塞尔索','Real Betis','中场'],['利桑德罗·马丁内斯','Manchester United','后卫'],['莫利纳','Atletico Madrid','后卫'],['塔利亚菲科','Lyon','后卫'],['鲁利','Ajax','门将']],
+      ESP: [['奥尔莫','Barcelona','中场'],['梅里诺','Arsenal','中场'],['祖比门迪','Real Sociedad','中场'],['奥亚萨瓦尔','Real Sociedad','前锋'],['费兰·托雷斯','Barcelona','前锋'],['库库雷利亚','Chelsea','后卫'],['勒诺尔芒','Atletico Madrid','后卫'],['拉亚','Arsenal','门将']],
+      FRA: [['图拉姆','Inter Milan','前锋'],['穆阿尼','Paris Saint-Germain','前锋'],['科曼','Bayern Munich','前锋'],['坎特','Al Ittihad','中场'],['孔德','Barcelona','后卫'],['特奥','AC Milan','后卫'],['于帕梅卡诺','Bayern Munich','后卫'],['桑巴','Lens','门将']],
+      ENG: [['拉什福德','Manchester United','前锋'],['沃特金斯','Aston Villa','前锋'],['戈登','Newcastle United','前锋'],['麦迪逊','Tottenham','中场'],['加拉格尔','Atletico Madrid','中场'],['阿诺德','Liverpool','后卫'],['沃克','Manchester City','后卫'],['拉姆斯代尔','Southampton','门将']],
+      POR: [['菲利克斯','Chelsea','前锋'],['贡萨洛·拉莫斯','Paris Saint-Germain','前锋'],['佩德罗·内托','Chelsea','前锋'],['帕利尼亚','Bayern Munich','中场'],['若昂·内维斯','Paris Saint-Germain','中场'],['坎塞洛','Al Hilal','后卫'],['努诺·门德斯','Paris Saint-Germain','后卫'],['若泽·萨','Wolves','门将']],
+      BRA: [['内马尔','Al Hilal','前锋'],['恩德里克','Real Madrid','前锋'],['马丁内利','Arsenal','前锋'],['若昂·戈麦斯','Wolves','中场'],['道格拉斯·路易斯','Juventus','中场'],['米利唐','Real Madrid','后卫'],['加布里埃尔','Arsenal','后卫'],['埃德森','Manchester City','门将']],
+      NED: [['布罗贝伊','Ajax','前锋'],['马伦','Borussia Dortmund','前锋'],['库普梅纳斯','Juventus','中场'],['斯豪滕','PSV','中场'],['弗林蓬','Bayer Leverkusen','后卫'],['阿克','Manchester City','后卫'],['邓弗里斯','Inter Milan','后卫'],['弗莱肯','Brentford','门将']],
+      BEL: [['巴卡约科','PSV','前锋'],['奥蓬达','RB Leipzig','前锋'],['卡拉斯科','Al Shabab','中场'],['芒加拉','Lyon','中场'],['维特塞尔','Atletico Madrid','后卫'],['卡斯塔涅','Fulham','后卫'],['蒂特','Rennes','后卫'],['泽尔斯','Nottingham Forest','门将']],
+      GER: [['菲尔克鲁格','West Ham United','前锋'],['格纳布里','Bayern Munich','前锋'],['昂达夫','Stuttgart','前锋'],['格罗斯','Borussia Dortmund','中场'],['安德里希','Bayer Leverkusen','中场'],['米特尔施泰特','Stuttgart','后卫'],['塔','Bayer Leverkusen','后卫'],['鲍曼','Hoffenheim','门将']],
+      CRO: [['布迪米尔','Osasuna','前锋'],['马耶尔','Wolfsburg','中场'],['帕萨利奇','Atalanta','中场'],['苏契奇','Red Bull Salzburg','中场'],['埃尔利奇','Bologna','后卫'],['尤拉诺维奇','Union Berlin','后卫'],['索萨','Ajax','后卫'],['伊武希奇','Pafos','门将']],
+      ITA: [['斯卡马卡','Atalanta','前锋'],['拉斯帕多里','Napoli','前锋'],['佩莱格里尼','Roma','中场'],['若日尼奥','Arsenal','中场'],['洛卡特利','Juventus','中场'],['卡拉菲奥里','Arsenal','后卫'],['迪马尔科','Inter Milan','后卫'],['维卡里奥','Tottenham','门将']],
+      MAR: [['阿明·阿德利','Bayer Leverkusen','前锋'],['苏菲安·拉希米','Al Ain','前锋'],['阿布卡尔','Deportivo Alaves','后卫'],['马兹拉维','Manchester United','后卫'],['阿马拉','Real Valladolid','中场'],['本塞吉尔','Monaco','前锋'],['理查德森','Fiorentina','中场'],['穆尼尔','RS Berkane','门将']],
+      URU: [['马克西·阿劳霍','Sporting CP','前锋'],['德拉克鲁斯','Flamengo','中场'],['南德斯','Al Qadsiah','中场'],['奥利韦拉','Napoli','后卫'],['希门尼斯','Atletico Madrid','后卫'],['卡塞雷斯','LA Galaxy','后卫'],['巴雷拉','Flamengo','后卫'],['梅莱','Junior','门将']],
+      COL: [['西尼斯特拉','Bournemouth','前锋'],['金特罗','America de Cali','中场'],['卡拉斯卡尔','Dynamo Moscow','中场'],['里奥斯','Palmeiras','中场'],['卢库米','Bologna','后卫'],['米纳','Cagliari','后卫'],['莫希卡','Mallorca','后卫'],['蒙特罗','Millonarios','门将']],
+      SUI: [['阿姆杜尼','Benfica','前锋'],['巴尔加斯','Augsburg','前锋'],['扎卡里亚','Monaco','中场'],['里德尔','Rennes','中场'],['威德默','Mainz','后卫'],['罗德里格斯','Real Betis','后卫'],['埃尔维迪','Borussia Monchengladbach','后卫'],['科贝尔','Borussia Dortmund','门将']],
+      USA: [['维阿','Juventus','前锋'],['阿伦森','Leeds United','中场'],['德拉托雷','Celta Vigo','中场'],['佩皮','PSV','前锋'],['罗宾逊','Fulham','后卫'],['里姆','Charlotte FC','后卫'],['理查兹','Crystal Palace','后卫'],['霍瓦斯','Cardiff City','门将']],
+      MEX: [['安图纳','Tigres UANL','前锋'],['阿尔瓦拉多','Chivas','前锋'],['罗莫','Monterrey','中场'],['埃雷拉','Houston Dynamo','中场'],['科尔多瓦','Tigres UANL','中场'],['阿劳霍','AEK Athens','后卫'],['桑切斯','America','后卫'],['马拉贡','America','门将']],
+      JPN: [['前田大然','Celtic','前锋'],['南野拓实','Monaco','前锋'],['上田绮世','Feyenoord','前锋'],['田中碧','Leeds United','中场'],['旗手怜央','Celtic','中场'],['板仓滉','Borussia Monchengladbach','后卫'],['伊藤洋辉','Bayern Munich','后卫'],['大迫敬介','Sanfrecce Hiroshima','门将']],
+      SEN: [['迪亚','Lazio','前锋'],['恩迪亚耶','Everton','前锋'],['迪亚洛','Al Arabi','前锋'],['迪亚塔','Monaco','中场'],['门迪','Lens','中场'],['雅各布斯','Galatasaray','后卫'],['萨巴利','Real Betis','后卫'],['戈米斯','Rennes','门将']],
+      DEN: [['温德','Wolfsburg','前锋'],['达姆斯高','Brentford','中场'],['德莱尼','Anderlecht','中场'],['尤尔曼德','Sporting CP','中场'],['梅勒','Wolfsburg','后卫'],['安诺生','Fulham','后卫'],['维斯特高','Leicester City','后卫'],['赫尔曼森','Leicester City','门将']],
+      AUT: [['格雷戈里奇','Freiburg','前锋'],['维默尔','Wolfsburg','前锋'],['格里利奇','Hoffenheim','中场'],['赛瓦尔德','RB Leipzig','中场'],['波施','Bologna','后卫'],['林哈特','Freiburg','后卫'],['姆韦内','Mainz','后卫'],['林德纳','Union Saint-Gilloise','门将']],
+      IRN: [['加耶迪','Kalba','前锋'],['莫加汉卢','Sepahan','前锋'],['卡里米','Kayserispor','中场'],['诺罗拉希','Al Wahda','中场'],['卡纳尼','Persepolis','后卫'],['哈利扎德','Al Ahli','后卫'],['雷扎扬','Esteghlal','后卫'],['尼亚兹曼德','Sepahan','门将']],
+      KOR: [['曹圭成','Midtjylland','前锋'],['吴贤揆','Genk','前锋'],['郑想宾','Minnesota United','前锋'],['白昇浩','Birmingham City','中场'],['洪贤锡','Mainz','中场'],['李在城','Mainz','中场'],['金珍洙','Jeonbuk Hyundai','后卫'],['金承奎','Al Shabab','门将']],
+      ECU: [['萨米恩托','Brighton','前锋'],['梅纳','Leon','前锋'],['普雷西亚多','Sparta Prague','后卫'],['佛朗哥','Atletico Mineiro','中场'],['格鲁埃索','San Jose Earthquakes','中场'],['阿兰·弗朗哥','Atletico Mineiro','中场'],['奥尔多涅斯','Club Brugge','后卫'],['拉米雷斯','Independiente del Valle','门将']],
+      AUS: [['博伊尔','Hibernian','前锋'],['博雷洛','Western Sydney Wanderers','前锋'],['梅特卡夫','St Pauli','中场'],['巴克斯','Mansfield Town','中场'],['罗尔斯','Hearts','后卫'],['斯特雷恩','Dundee United','后卫'],['伯吉斯','Ipswich Town','后卫'],['高西','Aston Villa','门将']],
+      UKR: [['亚列姆丘克','Olympiacos','前锋'],['沙帕连科','Dynamo Kyiv','中场'],['布拉日科','Dynamo Kyiv','中场'],['斯捷潘年科','Shakhtar Donetsk','中场'],['米科连科','Everton','后卫'],['科诺普利亚','Shakhtar Donetsk','后卫'],['马特维延科','Shakhtar Donetsk','后卫'],['特鲁宾','Benfica','门将']],
+      TUR: [['阿克蒂尔科奥卢','Benfica','前锋'],['托松','Fenerbahce','前锋'],['尤克塞克','Fenerbahce','中场'],['奥兹詹','Borussia Dortmund','中场'],['巴尔达克奇','Galatasaray','后卫'],['瑟云聚','Fenerbahce','后卫'],['穆尔杜尔','Fenerbahce','后卫'],['居诺克','Besiktas','门将']],
+      POL: [['皮亚特克','Istanbul Basaksehir','前锋'],['布克萨','Midtjylland','前锋'],['希曼斯基','Fenerbahce','中场'],['斯利兹','Atlanta United','中场'],['卡什','Aston Villa','后卫'],['贝雷申斯基','Sampdoria','后卫'],['达维多维奇','Hellas Verona','后卫'],['布尔卡','Nice','门将']],
+      SWE: [['克莱松','FC Copenhagen','前锋'],['塞马','Watford','中场'],['斯万贝里','Wolfsburg','中场'],['卡尔斯特罗姆','Udinese','中场'],['奥古斯丁松','Anderlecht','后卫'],['克拉夫特','Newcastle United','后卫'],['古德蒙德松','Lille','后卫'],['约翰松','Rotherham United','门将']],
+      WAL: [['摩尔','Sheffield United','前锋'],['布鲁克斯','Bournemouth','中场'],['科尔威尔','Cardiff City','中场'],['布罗德黑德','Ipswich Town','前锋'],['威尔·戴维斯','Tottenham','后卫'],['梅菲姆','Bournemouth','后卫'],['洛克耶','Luton Town','后卫'],['沃德','Leicester City','门将']],
+      HUN: [['瓦尔加','Ferencvaros','前锋'],['罗兰·绍洛伊','Galatasaray','前锋'],['克莱因海斯勒','Hajduk Split','中场'],['博拉','Rapid Wien','后卫'],['菲奥拉','Fehervar','后卫'],['达尔代','Hertha Berlin','后卫'],['绍洛伊','Hoffenheim','后卫'],['古拉奇','RB Leipzig','门将']],
+      SRB: [['约维奇','AC Milan','前锋'],['萨马尔季奇','Atalanta','中场'],['卢基奇','Fulham','中场'],['古德利','Sevilla','中场'],['日夫科维奇','PAOK','前锋'],['姆拉德诺维奇','Panathinaikos','后卫'],['维利科维奇','Werder Bremen','后卫'],['米林科维奇-萨维奇','Torino','门将']],
+      EGY: [['穆斯塔法·穆罕默德','Nantes','前锋'],['齐佐','Zamalek','中场'],['索比','Pyramids','中场'],['阿舒尔','Al Ahly','中场'],['哈姆迪','Pyramids','后卫'],['阿卜杜勒莫奈姆','Nice','后卫'],['法图赫','Zamalek','后卫'],['阿瓦德','Zamalek','门将']],
+      QAT: [['蒙塔里','Al Duhail','前锋'],['穆罕默德·瓦德','Al Sadd','中场'],['哈特姆','Al Rayyan','中场'],['阿卜杜里萨格','Al Sadd','前锋'],['萨尔曼','Al Sadd','后卫'],['门德斯','Al Wakrah','后卫'],['哈桑','Al Sadd','后卫'],['扎卡里亚','Al Duhail','门将']],
+      CAN: [['沙菲尔伯格','Nashville SC','前锋'],['科内柳斯','Marseille','后卫'],['米勒','Portland Timbers','后卫'],['拉耶亚','Toronto FC','后卫'],['米拉尔','Hull City','中场'],['奥索里奥','Toronto FC','中场'],['乔尼尔','CF Montreal','中场'],['圣克莱尔','Minnesota United','门将']],
+      NOR: [['鲍勃','Manchester City','前锋'],['拉尔森','Celta Vigo','前锋'],['索尔巴肯','Empoli','前锋'],['托斯比','Genoa','中场'],['伯格','Burnley','中场'],['梅林','FC Copenhagen','后卫'],['奥斯蒂高','Rennes','后卫'],['塞尔维克','Udinese','门将']],
+      CZE: [['库赫塔','Midtjylland','前锋'],['切尔尼','Rangers','前锋'],['巴拉克','Fiorentina','中场'],['林格尔','Slavia Prague','中场'],['尤拉塞克','Hoffenheim','后卫'],['齐马','Slavia Prague','后卫'],['维蒂克','Sparta Prague','后卫'],['科瓦日','Bayer Leverkusen','门将']],
+      NGA: [['博尼费斯','Bayer Leverkusen','前锋'],['伊希纳乔','Sevilla','前锋'],['西蒙','Nantes','前锋'],['奥涅卡','Brentford','中场'],['阿里博','Southampton','中场'],['艾娜','Nottingham Forest','后卫'],['阿贾伊','West Bromwich Albion','后卫'],['奥科耶','Udinese','门将']],
+      ALG: [['斯利马尼','Mechelen','前锋'],['奥纳斯','Al Sadd','前锋'],['布达维','Nice','中场'],['泽鲁基','Feyenoord','中场'],['奥亚尔','Al Ittihad','中场'],['本塞拜尼','Borussia Dortmund','后卫'],['图加伊','Esperance','后卫'],['姆博利','CR Belouizdad','门将']],
+      SCO: [['香克兰德','Hearts','前锋'],['克里斯蒂','Bournemouth','中场'],['阿姆斯特朗','Southampton','中场'],['麦克莱恩','Norwich City','中场'],['希基','Brentford','后卫'],['拉尔斯顿','Celtic','后卫'],['亨德利','Al Ettifaq','后卫'],['克拉克','Hearts','门将']]
+    };
+
+    teams.forEach(team => {
+      team.players = team.players.concat(squadAdds[team.code] || []).slice(0, 16);
+    });
+
+    const shirtNumbers = {
+      ARG: { '梅西':'10','劳塔罗':'22','阿尔瓦雷斯':'9','麦卡利斯特':'20','恩佐':'24','德保罗':'7','罗梅罗':'13','马丁内斯':'23','迪马利亚':'11','帕雷德斯':'5','洛塞尔索':'16','利桑德罗·马丁内斯':'25','莫利纳':'26','塔利亚菲科':'3','鲁利':'12' },
+      ESP: { '亚马尔':'19','尼科·威廉姆斯':'17','莫拉塔':'7','佩德里':'20','罗德里':'16','法比安':'8','卡瓦哈尔':'2','乌奈·西蒙':'23' },
+      FRA: { '姆巴佩':'10','登贝莱':'11','格列兹曼':'7','楚阿梅尼':'8','卡马文加':'6','拉比奥':'14','萨利巴':'17','迈尼昂':'16' },
+      ENG: { '凯恩':'9','萨卡':'7','福登':'11','贝林厄姆':'10','赖斯':'4','帕尔默':'24','斯通斯':'5','皮克福德':'1' },
+      POR: { 'C罗':'7','莱奥':'17','特林康':'20','B费':'8','B席':'10','维蒂尼亚':'23','鲁本·迪亚斯':'4','迪奥戈·科斯塔':'22' },
+      BRA: { '维尼修斯':'7','罗德里戈':'10','拉菲尼亚':'11','吉马良斯':'5','帕奎塔':'8','卡塞米罗':'18','马尔基尼奥斯':'4','阿利松':'1' }
+    };
+
+    teams.forEach(team => {
+      const map = shirtNumbers[team.code] || {};
+      team.players = team.players.map(player => [player[0], player[1], player[2], map[player[0]] || '待定']);
+    });
+
+    const fallbackMatches = [
+      { id:'m1', group:'A', date:'6月11日', time:'19:00', home:'MEX', away:'RSA', done:true, score:[2,0] },
+      { id:'m2', group:'B', date:'6月12日', time:'20:00', home:'CAN', away:'BIH', done:true, score:[1,1] },
+      { id:'m3', group:'A', date:'6月13日', time:'17:00', home:'KOR', away:'CZE', done:true, score:[0,0] },
+      { id:'m4', group:'E', date:'6月14日', time:'15:00', home:'GER', away:'CUW', done:true, score:[7,1] },
+      { id:'m5', group:'C', date:'6月15日', time:'18:00', home:'BRA', away:'MAR', done:true, score:[1,1] },
+      { id:'m6', group:'H', date:'6月16日', time:'12:00', home:'ESP', away:'KSA', done:false },
+      { id:'m7', group:'G', date:'6月16日', time:'15:00', home:'BEL', away:'EGY', done:false },
+      { id:'m8', group:'I', date:'6月17日', time:'15:00', home:'NOR', away:'FRA', done:false },
+      { id:'m9', group:'L', date:'6月18日', time:'18:00', home:'ENG', away:'CRO', done:false },
+      { id:'m10', group:'D', date:'6月19日', time:'20:00', home:'ARG', away:'AUT', done:false },
+      { id:'m11', group:'F', date:'6月20日', time:'17:00', home:'POR', away:'JPN', done:false },
+      { id:'m12', group:'K', date:'6月21日', time:'20:00', home:'USA', away:'SEN', done:false }
+    ];
+    let matches = fallbackMatches;
+
+    const extraNames = {
+      RSA: ['南非','South Africa','za'], BIH: ['波黑','Bosnia and Herzegovina','ba'], CUW: ['库拉索','Curacao','cw'], KSA: ['沙特','Saudi Arabia','sa'],
+      CPV: ['佛得角','Cabo Verde','cv'], NZL: ['新西兰','New Zealand','nz'], CIV: ['科特迪瓦','Cote d Ivoire','ci'], TUN: ['突尼斯','Tunisia','tn'],
+      PAR: ['巴拉圭','Paraguay','py'], UZB: ['乌兹别克斯坦','Uzbekistan','uz'], GHA: ['加纳','Ghana','gh'], HAI: ['海地','Haiti','ht'],
+      IRQ: ['伊拉克','Iraq','iq'], PAN: ['巴拿马','Panama','pa'], JAM: ['牙买加','Jamaica','jm'],
+      JOR: ['约旦','Jordan','jo'], COD: ['刚果民主共和国','DR Congo','cd']
+    };
+
+    const playerEnglishNames = {
+      '梅西':'Lionel Messi','劳塔罗':'Lautaro Martinez','阿尔瓦雷斯':'Julian Alvarez','麦卡利斯特':'Alexis Mac Allister','恩佐':'Enzo Fernandez','德保罗':'Rodrigo De Paul','罗梅罗':'Cristian Romero','马丁内斯':'Emiliano Martinez','迪马利亚':'Angel Di Maria','帕雷德斯':'Leandro Paredes','洛塞尔索':'Giovani Lo Celso',
+      '亚马尔':'Lamine Yamal','尼科·威廉姆斯':'Nico Williams','莫拉塔':'Alvaro Morata','佩德里':'Pedri','罗德里':'Rodri','法比安':'Fabian Ruiz','卡瓦哈尔':'Dani Carvajal','乌奈·西蒙':'Unai Simon','奥尔莫':'Dani Olmo','梅里诺':'Mikel Merino','祖比门迪':'Martin Zubimendi','费兰·托雷斯':'Ferran Torres','拉亚':'David Raya',
+      '姆巴佩':'Kylian Mbappe','登贝莱':'Ousmane Dembele','格列兹曼':'Antoine Griezmann','楚阿梅尼':'Aurelien Tchouameni','卡马文加':'Eduardo Camavinga','拉比奥':'Adrien Rabiot','萨利巴':'William Saliba','迈尼昂':'Mike Maignan','图拉姆':'Marcus Thuram','穆阿尼':'Randal Kolo Muani','科曼':'Kingsley Coman','坎特':'N Golo Kante','孔德':'Jules Kounde','特奥':'Theo Hernandez',
+      '凯恩':'Harry Kane','萨卡':'Bukayo Saka','福登':'Phil Foden','贝林厄姆':'Jude Bellingham','赖斯':'Declan Rice','帕尔默':'Cole Palmer','斯通斯':'John Stones','皮克福德':'Jordan Pickford','拉什福德':'Marcus Rashford','沃特金斯':'Ollie Watkins','戈登':'Anthony Gordon','麦迪逊':'James Maddison','阿诺德':'Trent Alexander-Arnold','沃克':'Kyle Walker',
+      'C罗':'Cristiano Ronaldo','莱奥':'Rafael Leao','特林康':'Francisco Trincao','B费':'Bruno Fernandes','B席':'Bernardo Silva','维蒂尼亚':'Vitinha','鲁本·迪亚斯':'Ruben Dias','迪奥戈·科斯塔':'Diogo Costa','菲利克斯':'Joao Felix','贡萨洛·拉莫斯':'Goncalo Ramos','佩德罗·内托':'Pedro Neto','帕利尼亚':'Joao Palhinha','若昂·内维斯':'Joao Neves','坎塞洛':'Joao Cancelo','努诺·门德斯':'Nuno Mendes',
+      '维尼修斯':'Vinicius Junior','罗德里戈':'Rodrygo','拉菲尼亚':'Raphinha','吉马良斯':'Bruno Guimaraes','帕奎塔':'Lucas Paqueta','卡塞米罗':'Casemiro','马尔基尼奥斯':'Marquinhos','阿利松':'Alisson Becker','内马尔':'Neymar','恩德里克':'Endrick','马丁内利':'Gabriel Martinelli','米利唐':'Eder Militao','加布里埃尔':'Gabriel Magalhaes','埃德森':'Ederson',
+      '加克波':'Cody Gakpo','德佩':'Memphis Depay','哈维·西蒙斯':'Xavi Simons','德容':'Frenkie de Jong','赖因德斯':'Tijjani Reijnders','范戴克':'Virgil van Dijk','德利赫特':'Matthijs de Ligt','维尔布鲁根':'Bart Verbruggen','马伦':'Donyell Malen','弗林蓬':'Jeremie Frimpong','阿克':'Nathan Ake','邓弗里斯':'Denzel Dumfries',
+      '卢卡库':'Romelu Lukaku','多库':'Jeremy Doku','特罗萨德':'Leandro Trossard','德布劳内':'Kevin De Bruyne','蒂勒曼斯':'Youri Tielemans','奥纳纳':'Amadou Onana','卡斯特尔斯':'Koen Casteels','奥蓬达':'Lois Openda','卡拉斯科':'Yannick Carrasco','维特塞尔':'Axel Witsel',
+      '穆西亚拉':'Jamal Musiala','维尔茨':'Florian Wirtz','哈弗茨':'Kai Havertz','萨内':'Leroy Sane','基米希':'Joshua Kimmich','京多安':'Ilkay Gundogan','吕迪格':'Antonio Rudiger','特尔施特根':'Marc-Andre ter Stegen','菲尔克鲁格':'Niclas Fullkrug','格纳布里':'Serge Gnabry','塔':'Jonathan Tah',
+      '克拉马里奇':'Andrej Kramaric','佩里西奇':'Ivan Perisic','莫德里奇':'Luka Modric','科瓦契奇':'Mateo Kovacic','布罗佐维奇':'Marcelo Brozovic','格瓦迪奥尔':'Josko Gvardiol','斯坦尼西奇':'Josip Stanisic','利瓦科维奇':'Dominik Livakovic',
+      '基耶萨':'Federico Chiesa','雷特吉':'Mateo Retegui','巴雷拉':'Nicolo Barella','托纳利':'Sandro Tonali','弗拉泰西':'Davide Frattesi','迪洛伦佐':'Giovanni Di Lorenzo','巴斯托尼':'Alessandro Bastoni','多纳鲁马':'Gianluigi Donnarumma',
+      '阿什拉夫':'Achraf Hakimi','阿姆拉巴特':'Sofyan Amrabat','布努':'Yassine Bounou','努涅斯':'Darwin Nunez','苏亚雷斯':'Luis Suarez','巴尔韦德':'Federico Valverde','阿劳霍':'Ronald Araujo','迪亚斯':'Luis Diaz','杜兰':'Jhon Duran','J罗':'James Rodriguez','扎卡':'Granit Xhaka','阿坎吉':'Manuel Akanji','索默':'Yann Sommer',
+      '普利西奇':'Christian Pulisic','巴洛贡':'Folarin Balogun','雷纳':'Gio Reyna','麦肯尼':'Weston McKennie','穆萨':'Yunus Musah','亚当斯':'Tyler Adams','德斯特':'Sergino Dest','特纳':'Matt Turner','希门尼斯':'Raul Jimenez','洛萨诺':'Hirving Lozano',
+      '三笘薰':'Kaoru Mitoma','久保建英':'Takefusa Kubo','堂安律':'Ritsu Doan','远藤航':'Wataru Endo','守田英正':'Hidemasa Morita','镰田大地':'Daichi Kamada','富安健洋':'Takehiro Tomiyasu','铃木彩艳':'Zion Suzuki',
+      '马内':'Sadio Mane','尼古拉斯·杰克逊':'Nicolas Jackson','伊斯梅拉·萨尔':'Ismaila Sarr','库利巴利':'Kalidou Koulibaly','门迪':'Edouard Mendy','霍伊伦':'Rasmus Hojlund','埃里克森':'Christian Eriksen','霍伊别尔':'Pierre-Emile Hojbjerg','舒梅切尔':'Kasper Schmeichel',
+      '塔雷米':'Mehdi Taremi','阿兹蒙':'Sardar Azmoun','孙兴慜':'Son Heung-min','黄喜灿':'Hwang Hee-chan','李刚仁':'Lee Kang-in','金玟哉':'Kim Min-jae','凯塞多':'Moises Caicedo','派斯':'Kendry Paez','辛卡皮耶':'Piero Hincapie',
+      '多夫比克':'Artem Dovbyk','穆德里克':'Mykhailo Mudryk','津琴科':'Oleksandr Zinchenko','卢宁':'Andriy Lunin','居莱尔':'Arda Guler','恰尔汗奥卢':'Hakan Calhanoglu','莱万多夫斯基':'Robert Lewandowski','泽林斯基':'Piotr Zielinski',
+      '伊萨克':'Alexander Isak','哲凯赖什':'Viktor Gyokeres','库卢塞夫斯基':'Dejan Kulusevski','索博斯洛伊':'Dominik Szoboszlai','弗拉霍维奇':'Dusan Vlahovic','米特罗维奇':'Aleksandar Mitrovic','萨拉赫':'Mohamed Salah','马尔穆什':'Omar Marmoush','阿菲夫':'Akram Afif',
+      '戴维':'Jonathan David','戴维斯':'Alphonso Davies','哈兰德':'Erling Haaland','厄德高':'Martin Odegaard','希克':'Patrik Schick','奥斯梅恩':'Victor Osimhen','卢克曼':'Ademola Lookman','马赫雷斯':'Riyad Mahrez','麦克托米奈':'Scott McTominay','罗伯逊':'Andrew Robertson'
+    };
+
+    let selected = teams[0].code;
+    let view = 'teams';
+    let currentUser = localStorage.getItem('wc_current_user') || '';
+    let allPredictions = JSON.parse(localStorage.getItem('wc_all_predictions_v1') || '{}');
+
+    const $ = id => document.getElementById(id);
+    const teamByCode = code => teams.find(t => t.code === code);
+    const playerEn = name => playerEnglishNames[name] || 'English name to update';
+    const cleanUser = name => name.trim().replace(/[^\w\u4e00-\u9fa5 .-]/g, '').slice(0, 24);
+    const userPrediction = matchId => currentUser && allPredictions[matchId] ? allPredictions[matchId][currentUser] : null;
+    const predictionUsers = matchId => allPredictions[matchId] ? Object.entries(allPredictions[matchId]) : [];
+    const sameResult = (score, pred) => {
+      const diff = Math.sign(Number(score[0]) - Number(score[1]));
+      const predDiff = Math.sign(Number(pred[0]) - Number(pred[1]));
+      return diff === predDiff;
+    };
+
+    function renderStaticText() {
+      $('kickerLeft').innerHTML = tr('kicker');
+      $('langToggle').textContent = tr('toggle');
+      $('heroTitle').innerHTML = tr('hero');
+      $('statTeams').textContent = tr('statTeams');
+      $('statPlayers').textContent = tr('statPlayers');
+      $('statMatches').textContent = tr('statMatches');
+      $('search').placeholder = tr('search');
+      $('teamsTab').textContent = tr('teamsTab');
+      $('matchesTab').textContent = tr('matchesTab');
+      $('rankTitle').textContent = tr('rankTitle');
+      $('swipeHint').textContent = tr('swipeHint');
+      $('teamsNotice').textContent = tr('teamsNotice');
+      $('matchesNotice').textContent = tr('matchesNotice');
+      $('bottomTeams').textContent = tr('bottomTeams');
+      $('bottomMatches').textContent = tr('bottomMatches');
+      document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+    }
+    const infoByCode = (code, fallbackName = '') => {
+      const t = teamByCode(code);
+      if (t) return { name: t.name, en: t.en, flagCode: t.flagCode };
+      const e = extraNames[code] || [fallbackName || code, fallbackName || code, 'un'];
+      return { name: e[0], en: e[1], flagCode: e[2] };
+    };
+
+    function renderStrip() {
+      const q = $('search').value.trim().toLowerCase();
+      const filtered = teams.filter(t =>
+        !q || t.name.toLowerCase().includes(q) || t.en.toLowerCase().includes(q) || t.players.some(p => p.join(' ').toLowerCase().includes(q))
+      );
+      $('teamStrip').innerHTML = filtered.map(t => `
+        <button class="team-pill ${t.code === selected ? 'active' : ''}" data-team="${t.code}">
+          <img class="flag" src="${flag(t.flagCode)}" alt="${t.name}">
+          <span class="pill-name">${primaryTeam(t)}</span>
+          <span class="pill-en">${secondaryTeam(t)}</span>
+          <span class="rank">FIFA #${t.rank}</span>
+        </button>`).join('');
+      if (!filtered.some(t => t.code === selected) && filtered[0]) selected = filtered[0].code;
+      document.querySelectorAll('.team-pill').forEach(btn => btn.onclick = () => {
+        selected = btn.dataset.team;
+        render();
+      });
+    }
+
+    function renderTeam() {
+      const q = $('search').value.trim().toLowerCase();
+      const t = teamByCode(selected) || teams[0];
+      const players = t.players.filter(p => !q || t.name.toLowerCase().includes(q) || t.en.toLowerCase().includes(q) || playerEn(p[0]).toLowerCase().includes(q) || p.join(' ').toLowerCase().includes(q));
+      $('teamDetail').innerHTML = `
+        <article class="panel">
+          <div class="team-head">
+            <img class="flag" src="${flag(t.flagCode)}" alt="${t.name}">
+            <div class="team-title">
+              <h2>${primaryTeam(t)} <span style="color:#8993a3;font-size:14px;">${secondaryTeam(t)}</span></h2>
+              <div class="meta">${t.confed} · ${tr('worldRank')} #${t.rank} · ${t.players.length} ${tr('corePlayers')}</div>
+            </div>
+            <div class="badge">#${t.rank}</div>
+          </div>
+          <div class="players">
+            ${players.length ? players.map((p, i) => `
+              <div class="player">
+                <div class="shirt">#${p[3] || tr('pending')}</div>
+                <div><b>${primaryPlayer(p)}</b><span class="player-en">${secondaryPlayer(p)}</span><span class="club-line">${p[1]}</span></div>
+                <em class="pos ${posClass(p[2])}">${posLabel(p[2])}</em>
+              </div>`).join('') : `<div class="empty">${tr('noPlayer')}</div>`}
+          </div>
+        </article>`;
+    }
+
+    function renderAccount() {
+      $('accountPanel').innerHTML = currentUser ? `
+        <div class="user-chip">
+          <span>${tr('currentUser')}: <b>${currentUser}</b></span>
+          <button class="mini-btn secondary" id="logoutBtn">${tr('switchUser')}</button>
+        </div>` : `
+        <input id="loginName" placeholder="${tr('loginPlaceholder')}" maxlength="24">
+        <button id="loginBtn">${tr('login')}</button>`;
+
+      const loginBtn = $('loginBtn');
+      if (loginBtn) loginBtn.onclick = () => {
+        const name = cleanUser($('loginName').value);
+        if (!name) return;
+        currentUser = name;
+        localStorage.setItem('wc_current_user', currentUser);
+        render();
+      };
+      const logoutBtn = $('logoutBtn');
+      if (logoutBtn) logoutBtn.onclick = () => {
+        currentUser = '';
+        localStorage.removeItem('wc_current_user');
+        render();
+      };
+    }
+
+    function renderStats() {
+      if (!currentUser) {
+        $('statsPanel').innerHTML = `<div class="pred-text">${tr('loginStats')}</div>`;
+        return;
+      }
+      const completed = matches.filter(m => m.done && Array.isArray(m.score));
+      const predictedCompleted = completed.filter(m => userPrediction(m.id));
+      const exact = predictedCompleted.filter(m => {
+        const pred = userPrediction(m.id);
+        return Number(pred[0]) === Number(m.score[0]) && Number(pred[1]) === Number(m.score[1]);
+      }).length;
+      const resultHit = predictedCompleted.filter(m => sameResult(m.score, userPrediction(m.id))).length;
+      const exactRate = predictedCompleted.length ? Math.round(exact / predictedCompleted.length * 100) : 0;
+      $('statsPanel').innerHTML = `
+        <div class="stats-grid">
+          <div><b>${exactRate}%</b><span>${tr('accuracy')}</span></div>
+          <div><b>${exact}/${predictedCompleted.length}</b><span>${tr('exactHits')}</span></div>
+          <div><b>${resultHit}</b><span>${tr('resultHits')}</span></div>
+        </div>`;
+    }
+
+    function renderMatches() {
+      const q = $('search').value.trim().toLowerCase();
+      const list = matches.filter(m => {
+        const h = infoByCode(m.home, m.homeName), a = infoByCode(m.away, m.awayName);
+        return !q || `${h.name} ${h.en} ${a.name} ${a.en} ${m.group}`.toLowerCase().includes(q);
+      });
+      $('matchList').innerHTML = list.length ? list.map(m => {
+        const h = infoByCode(m.home, m.homeName), a = infoByCode(m.away, m.awayName);
+        const pred = userPrediction(m.id) || ['', ''];
+        const allRows = predictionUsers(m.id);
+        const shown = m.done ? m.score : (pred[0] !== '' && pred[1] !== '' ? pred : ['-', '-']);
+        const groupLabel = /^[A-L]$/.test(m.group) ? `${tr('group')} ${m.group}` : m.group;
+        return `
+          <div class="match">
+            <div class="match-top">
+              <span>${groupLabel} · ${displayDate(m.date)} ${displayTime(m.time)}</span>
+              <span class="status ${m.done ? '' : 'future'}">${m.done ? tr('completed') : tr('upcoming')}</span>
+            </div>
+            <div class="teams-row">
+              <div class="side"><img class="flag" src="${flag(h.flagCode)}" alt="${h.name}"><span class="side-name">${primaryTeam(h)}<small>${secondaryTeam(h)}</small></span></div>
+              <div class="score-box">${shown[0]} : ${shown[1]}</div>
+              <div class="side away"><span class="side-name">${primaryTeam(a)}<small>${secondaryTeam(a)}</small></span><img class="flag" src="${flag(a.flagCode)}" alt="${a.name}"></div>
+            </div>
+            ${m.done ? `<div class="pred-text">${tr('actualScore')}: ${primaryTeam(h)} ${m.score[0]}-${m.score[1]} ${primaryTeam(a)}</div>` : `
+              <div class="predict">
+                <input inputmode="numeric" pattern="[0-9]*" value="${pred[0]}" data-id="${m.id}" data-side="0" placeholder="${primaryTeam(h)}" ${currentUser ? '' : 'disabled'}>
+                <span style="text-align:center;color:#8993a3;font-weight:900;">${tr('vs')}</span>
+                <input inputmode="numeric" pattern="[0-9]*" value="${pred[1]}" data-id="${m.id}" data-side="1" placeholder="${primaryTeam(a)}" ${currentUser ? '' : 'disabled'}>
+                <button data-save="${m.id}" ${currentUser ? '' : 'disabled'}>${tr('save')}</button>
+              </div>
+              <div class="pred-text">${currentUser ? (pred[0] !== '' && pred[1] !== '' ? `${currentUser} ${tr('yourPrediction')}: ${primaryTeam(h)} ${pred[0]}-${pred[1]} ${primaryTeam(a)}` : tr('noPrediction')) : tr('loginToPredict')}</div>`}
+            <div class="prediction-actions">
+              <span class="pred-text">${allRows.length} ${tr('peoplePredicted')}</span>
+              <button class="mini-btn secondary" data-toggle-pred="${m.id}">${tr('viewPredictions')}</button>
+            </div>
+            <div class="all-predictions" id="pred-${m.id}">
+              ${allRows.length ? allRows.map(([user, value]) => `<div class="prediction-row"><b>${user}</b><span>${primaryTeam(h)} ${value[0]}-${value[1]} ${primaryTeam(a)}</span></div>`).join('') : tr('noOtherPredictions')}
+            </div>
+          </div>`;
+      }).join('') : `<div class="empty">${tr('emptyMatches')}</div>`;
+
+      document.querySelectorAll('[data-save]').forEach(btn => btn.onclick = () => {
+        const id = btn.dataset.save;
+        const inputs = [...document.querySelectorAll(`input[data-id="${id}"]`)];
+        const value = inputs.map(i => i.value.replace(/\D/g, '').slice(0, 2));
+        savePrediction(id, value);
+      });
+
+      document.querySelectorAll('[data-toggle-pred]').forEach(btn => btn.onclick = () => {
+        const box = document.getElementById(`pred-${btn.dataset.togglePred}`);
+        if (box) box.classList.toggle('open');
+      });
+    }
+
+    async function loadMatchesData() {
+      try {
+        const response = await fetch(`matches.json?v=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (Array.isArray(data) && data.length) matches = data;
+        $('fixtureCount').textContent = matches.length;
+      } catch (error) {
+        matches = fallbackMatches;
+        $('fixtureCount').textContent = matches.length;
+      }
+    }
+
+    async function loadPredictionsData() {
+      try {
+        const response = await fetch('api.php?action=list', { cache: 'no-store' });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (data && data.ok && data.predictions) {
+          allPredictions = data.predictions;
+          localStorage.setItem('wc_all_predictions_v1', JSON.stringify(allPredictions));
+        }
+      } catch (error) {
+        allPredictions = JSON.parse(localStorage.getItem('wc_all_predictions_v1') || '{}');
+      }
+    }
+
+    async function savePrediction(matchId, value) {
+      if (!currentUser || value[0] === '' || value[1] === '') return;
+      allPredictions[matchId] = allPredictions[matchId] || {};
+      allPredictions[matchId][currentUser] = value;
+      localStorage.setItem('wc_all_predictions_v1', JSON.stringify(allPredictions));
+      renderStats();
+      renderMatches();
+
+      try {
+        await fetch('api.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'savePrediction', user: currentUser, matchId, score: value })
+        });
+        await loadPredictionsData();
+        renderStats();
+        renderMatches();
+      } catch (error) {}
+    }
+
+    function setView(next) {
+      view = next;
+      document.querySelectorAll('.tab,.bottom-nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+      $('teamsView').classList.toggle('active', view === 'teams');
+      $('matchesView').classList.toggle('active', view === 'matches');
+    }
+
+    function render() {
+      renderStaticText();
+      renderStrip();
+      renderTeam();
+      renderAccount();
+      renderStats();
+      renderMatches();
+      setView(view);
+    }
+
+    document.querySelectorAll('[data-view]').forEach(btn => btn.onclick = () => setView(btn.dataset.view));
+    $('langToggle').onclick = () => {
+      lang = lang === 'en' ? 'zh' : 'en';
+      localStorage.setItem('wc_lang', lang);
+      render();
+    };
+    $('search').addEventListener('input', render);
+    Promise.all([loadMatchesData(), loadPredictionsData()]).finally(render);
+  </script>
+</body>
+</html>
